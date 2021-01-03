@@ -20,7 +20,21 @@ if (navigator.geolocation) {
       const { latitude } = position.coords;
       //   ^destructoring creates a variable out of the object
       const { longitude } = position.coords;
-      console.log(`https://www.google.com/maps/@${latitude},${longitude},`);
+      //   console.log(`https://www.google.com/maps/@${latitude},${longitude},`);
+      const coords = [latitude, longitude];
+
+      //   below code was copied from leaflet site, then values changed for what i needed
+      const map = L.map('map').setView(coords, 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+
+      L.marker(coords)
+        .addTo(map)
+        .bindPopup('A pretty CSS3 popup.<br> Easily customizable.')
+        .openPopup();
     },
     function () {
       alert('Could not get current position. ');
