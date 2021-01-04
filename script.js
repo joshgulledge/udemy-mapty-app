@@ -11,6 +11,8 @@ const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
 
+let map, mapEvent;
+
 // the iff is to check against older browersers
 if (navigator.geolocation) {
   // this is a browser API
@@ -24,7 +26,7 @@ if (navigator.geolocation) {
       const coords = [latitude, longitude];
 
       //   below code was copied from leaflet site, then values changed for what i needed
-      const map = L.map('map').setView(coords, 13);
+      map = L.map('map').setView(coords, 14);
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution:
@@ -32,24 +34,11 @@ if (navigator.geolocation) {
       }).addTo(map);
 
       //   this is the 'event listner' that we use on the map
-      map.on('click', function (mapEvent) {
-        console.log(mapEvent);
-        const { lat, lng } = mapEvent.latlng;
-
-        // this is from leaflet documentation
-        L.marker([lat, lng])
-          .addTo(map)
-          .bindPopup(
-            L.popup({
-              maxWidth: 250,
-              minWidth: 100,
-              autoClose: false,
-              closeOnClick: false,
-              className: 'running-popup',
-            })
-          )
-          .setPopupContent('WorkOut Location')
-          .openPopup();
+      map.on('click', function (mapE) {
+        mapEvent = mapE;
+        form.classList.remove('hidden');
+        inputDistance.focus();
+        // console.log(mapEvent);
       });
     },
     function () {
@@ -57,3 +46,35 @@ if (navigator.geolocation) {
     }
   );
 }
+
+form.addEventListener('submit', function (e) {
+  e.preventDefault();
+  // diplay marker
+
+  // clear input fields
+  inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value =
+    '';
+
+  //   adding marker
+  const { lat, lng } = mapEvent.latlng;
+
+  // this is from leaflet documentation
+  L.marker([lat, lng])
+    .addTo(map)
+    .bindPopup(
+      L.popup({
+        maxWidth: 250,
+        minWidth: 100,
+        autoClose: false,
+        closeOnClick: false,
+        className: 'running-popup',
+      })
+    )
+    .setPopupContent('WorkOut Location')
+    .openPopup();
+});
+
+inputType.addEventListener('change', function () {
+  inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
+  inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+});
