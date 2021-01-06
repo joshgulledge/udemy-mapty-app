@@ -14,6 +14,7 @@ class WorkOut {
   date = new Date();
   // not the usaul way to make an id bit will work for this
   id = (Date.now() + '').slice(-10);
+  clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; // array [lat, lng]
@@ -31,6 +32,10 @@ class WorkOut {
     // ^ 1) returns first letter capital and then the rest of the word.
     // then use the 0 based getMonth to get the month from the array.
     // then add the date to get a date like "May 12"
+  }
+
+  _click() {
+    this.clicks++;
   }
 } // -------- end WorkOut --------
 
@@ -67,12 +72,6 @@ class Cycling extends WorkOut {
   }
 } // -------- end Cycling --------
 
-// const run1 = new Running([49, 42], 3, 52, 55);
-// const bike1 = new Cycling([48, 42], 12, 18, 30);
-
-// console.log(run1);
-// console.log(bike1);
-
 class App {
   #map;
   #mapEvent;
@@ -86,6 +85,7 @@ class App {
     form.addEventListener('submit', this._newWorkout.bind(this));
 
     inputType.addEventListener('change', this._toggleElevationField);
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   } // ------ end constructor ------
 
   _getPosition() {
@@ -138,12 +138,12 @@ class App {
     form.style.display = 'none';
     form.classList.add('hidden');
     setTimeout(() => (form.style.display = 'grid'), 1000);
-  }
+  } // -------- end _hideForm --------
 
   _toggleElevationField() {
     inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
     inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
-  }
+  } // -------- end _toggleElevationField --------
 
   _newWorkout(e) {
     e.preventDefault();
@@ -195,7 +195,7 @@ class App {
       workOutObject = new Cycling([lat, lng], distance, duration, elevation);
     } // -------- end type cycling --------
 
-    this.#workOuts = workOutObject;
+    this.#workOuts.push(workOutObject);
     // console.log(workOut);
 
     // work out marker
@@ -225,7 +225,7 @@ class App {
         `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
       )
       .openPopup();
-  }
+  } // ------ end _makeWorkOutMarker ------
 
   _workOutList(workout) {
     // this html came from pre made document from udemy
@@ -258,7 +258,7 @@ class App {
           <span class="workout__unit">spm</span>
         </div>
       </li> `;
-    }
+    } // -------- end running html --------
     if (workout.type === 'cycling') {
       html += ` 
         <div class="workout__details">
@@ -273,12 +273,33 @@ class App {
         </div>
       </li>
       `;
-    }
+    } // -------- end cycling html --------
     // ^added template literals to made it display custom values
 
     form.insertAdjacentHTML('afterend', html);
     // ^ adds above html to html document after the end of form tag, as sibling
   } // ------  end _workOutList ------
+
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    // console.log(workoutEl);
+
+    if (!workoutEl) return;
+
+    const workout = this.#workOuts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    // ^ this sets a local const to the workout object in the array that was clicked
+
+    this.#map.setView(workout.coords, 14, {
+      animate: true,
+      pan: {
+        duration: 1,
+      },
+    });
+
+    workout._click();
+  } // -------- end _moveToPopup --------
 } // ------  end class App ------
 
 const app = new App();
