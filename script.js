@@ -14,7 +14,7 @@ class WorkOut {
   date = new Date();
   // not the usaul way to make an id bit will work for this
   id = (Date.now() + '').slice(-10);
-  clicks = 0;
+  // clicks = 0;
 
   constructor(coords, distance, duration) {
     this.coords = coords; // array [lat, lng]
@@ -34,9 +34,9 @@ class WorkOut {
     // then add the date to get a date like "May 12"
   }
 
-  _click() {
-    this.clicks++;
-  }
+  // _click() {
+  //   this.clicks++;
+  // }
 } // -------- end WorkOut --------
 
 class Running extends WorkOut {
@@ -80,10 +80,14 @@ class App {
   // this method is called immediatly when new instance is created--
   // --use that to call functions we need at app start up
   constructor() {
+    // get user position
     this._getPosition();
 
-    form.addEventListener('submit', this._newWorkout.bind(this));
+    // get data from local storage
+    this._getLocalStorage();
 
+    // attach event listeners
+    form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
     containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
   } // ------ end constructor ------
@@ -121,6 +125,10 @@ class App {
 
     //   this is the 'event listner' that we use on the map
     this.#map.on('click', this._showForm.bind(this));
+
+    this.#workOuts.forEach(work => {
+      this._makeWorkOutMarker(work);
+    });
   } // ------ end _loadMap ------
 
   _showForm(mapE) {
@@ -206,6 +214,9 @@ class App {
 
     // clear input fields
     this._hideForm();
+
+    // set local storate to store workouts
+    this._setLocalStorage();
   } // ------ end _newWorkout ------
 
   _makeWorkOutMarker(workout) {
@@ -298,8 +309,31 @@ class App {
       },
     });
 
-    workout._click();
+    // workout._click();
   } // -------- end _moveToPopup --------
+
+  _setLocalStorage() {
+    localStorage.setItem('yourWorkouts', JSON.stringify(this.#workOuts));
+  } // -------- end _setLocalStorage --------
+
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('yourWorkouts'));
+    // this should be an array of objects now, from past usage
+
+    if (!data) return;
+
+    this.#workOuts = data;
+
+    // put the work out objects on the list in the side bar
+    this.#workOuts.forEach(work => {
+      this._workOutList(work);
+    });
+  } // -------- end _getLocalStorage --------
+
+  reset() {
+    localStorage.removeItem('yourWorkouts');
+    location.reload();
+  } // -------- end reset --------
 } // ------  end class App ------
 
 const app = new App();
