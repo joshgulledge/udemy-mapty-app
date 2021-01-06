@@ -1,8 +1,5 @@
 'use strict';
 
-// prettier-ignore
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
 const form = document.querySelector('.form');
 const containerWorkouts = document.querySelector('.workouts');
 const inputType = document.querySelector('.form__input--type');
@@ -23,6 +20,18 @@ class WorkOut {
     this.distance = distance; // miles
     this.duration = duration; // minutes
   }
+
+  _setDescription() {
+    // prettier-ignore
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
+      months[this.date.getMonth()]
+    } ${this.date.getDate()}`;
+    // ^ 1) returns first letter capital and then the rest of the word.
+    // then use the 0 based getMonth to get the month from the array.
+    // then add the date to get a date like "May 12"
+  }
 } // -------- end WorkOut --------
 
 class Running extends WorkOut {
@@ -32,6 +41,7 @@ class Running extends WorkOut {
     super(coords, distance, duration);
     this.stepMin = stepMin;
     this.calPace();
+    this._setDescription();
   }
 
   calPace() {
@@ -47,6 +57,7 @@ class Cycling extends WorkOut {
     super(coords, distance, duration);
     this.elavationGain = elavationGain;
     this.calSpeed();
+    this._setDescription();
   }
 
   calSpeed() {
@@ -119,6 +130,16 @@ class App {
     // console.log(mapEvent);
   } // ------ end _showForm ------
 
+  _hideForm() {
+    // clear input fields
+    inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value =
+      '';
+
+    form.style.display = 'none';
+    form.classList.add('hidden');
+    setTimeout(() => (form.style.display = 'grid'), 1000);
+  }
+
   _toggleElevationField() {
     inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
     inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
@@ -138,7 +159,7 @@ class App {
     // ^ the + is a shorthand converstion to a number
     const duration = +inputDuration.value;
     const { lat, lng } = this.#mapEvent.latlng;
-    let workOut;
+    let workOutObject;
 
     // determine which workout object to make
     if (type === 'running') {
@@ -155,7 +176,7 @@ class App {
         alert('Must enter positive numbers only.');
       } // -------- end Guard Clause --------
 
-      workOut = new Running([lat, lng], distance, duration, stepMin);
+      workOutObject = new Running([lat, lng], distance, duration, stepMin);
     } // -------- end type running --------
 
     if (type === 'cycling') {
@@ -171,21 +192,23 @@ class App {
         alert('Must enter positive numbers only.');
       } // -------- end Guard Clause
 
-      workOut = new Cycling([lat, lng], distance, duration, elevation);
+      workOutObject = new Cycling([lat, lng], distance, duration, elevation);
     } // -------- end type cycling --------
 
-    this.#workOuts = workOut;
+    this.#workOuts = workOutObject;
     // console.log(workOut);
 
     // work out marker
-    this.makeWorkOutMarker(workOut);
+    this._makeWorkOutMarker(workOutObject);
+
+    // work out list on side bar
+    this._workOutList(workOutObject);
 
     // clear input fields
-    inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value =
-      '';
+    this._hideForm();
   } // ------ end _newWorkout ------
 
-  makeWorkOutMarker(workout) {
+  _makeWorkOutMarker(workout) {
     // this is from leaflet documentation
     L.marker(workout.coords)
       .addTo(this.#map)
@@ -198,9 +221,64 @@ class App {
           className: `${workout.type}-popup`,
         })
       )
-      .setPopupContent('workout')
+      .setPopupContent(
+        `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
+      )
       .openPopup();
   }
-} // ------ end class App ------
+
+  _workOutList(workout) {
+    // this html came from pre made document from udemy
+    let html = `
+    <li class="workout workout--${workout.type}" data-id="${workout.id}">
+      <h2 class="workout__title">${workout.description}</h2>
+      <div class="workout__details">
+        <span class="workout__icon">${
+          workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'
+        }</span>
+        <span class="workout__value">${workout.distance}</span>
+        <span class="workout__unit">km</span>
+      </div> 
+      <div class="workout__details">
+        <span class="workout__icon">⏱</span>
+        <span class="workout__value">${workout.duration}</span>
+        <span class="workout__unit">min</span>
+      </div>`;
+
+    if (workout.type === 'running') {
+      html += ` 
+        <div class="workout__details">
+          <span class="workout__icon">⚡️</span>
+          <span class="workout__value">${workout.pace.toFixed(1)}</span>
+          <span class="workout__unit">min/km</span>
+        </div>
+        <div class="workout__details">
+          <span class="workout__icon">🦶🏼</span>
+          <span class="workout__value">${workout.stepMin}</span>
+          <span class="workout__unit">spm</span>
+        </div>
+      </li> `;
+    }
+    if (workout.type === 'cycling') {
+      html += ` 
+        <div class="workout__details">
+          <span class="workout__icon">⚡️</span>
+          <span class="workout__value">${workout.speed.toFixed(1)}</span>
+          <span class="workout__unit">km/h</span>
+        </div>
+        <div class="workout__details">
+          <span class="workout__icon">⛰</span>
+          <span class="workout__value">${workout.elavationGain}</span>
+          <span class="workout__unit">m</span>
+        </div>
+      </li>
+      `;
+    }
+    // ^added template literals to made it display custom values
+
+    form.insertAdjacentHTML('afterend', html);
+    // ^ adds above html to html document after the end of form tag, as sibling
+  } // ------  end _workOutList ------
+} // ------  end class App ------
 
 const app = new App();
