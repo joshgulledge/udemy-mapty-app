@@ -26,6 +26,8 @@ class WorkOut {
 } // -------- end WorkOut --------
 
 class Running extends WorkOut {
+  type = 'running';
+
   constructor(coords, distance, duration, stepMin) {
     super(coords, distance, duration);
     this.stepMin = stepMin;
@@ -39,6 +41,8 @@ class Running extends WorkOut {
 } // -------- end Running --------
 
 class Cycling extends WorkOut {
+  type = 'cycling';
+
   constructor(coords, distance, duration, elavationGain) {
     super(coords, distance, duration);
     this.elavationGain = elavationGain;
@@ -61,6 +65,7 @@ class Cycling extends WorkOut {
 class App {
   #map;
   #mapEvent;
+  #workOuts = [];
 
   // this method is called immediatly when new instance is created--
   // --use that to call functions we need at app start up
@@ -121,17 +126,68 @@ class App {
 
   _newWorkout(e) {
     e.preventDefault();
-    // diplay marker
+
+    // helper functions
+    const validInputs = (...inputs) => inputs.every(i => Number.isFinite(i));
+    // ^loops over the inputs as an array, returns true only if true for all values
+    const allPositive = (...inputs) => inputs.every(i => i > 0);
+
+    // get data from form
+    const type = inputType.value;
+    const distance = +inputDistance.value;
+    // ^ the + is a shorthand converstion to a number
+    const duration = +inputDuration.value;
+    const { lat, lng } = this.#mapEvent.latlng;
+    let workOut;
+
+    // determine which workout object to make
+    if (type === 'running') {
+      const stepMin = +inputCadence.value;
+
+      // check if data is valid. guard clause
+      if (
+        // !Number.isFinite(distance) ||
+        // !Number.isFinite(duration) ||
+        // !Number.isFinite(stepMin)
+        !validInputs(distance, duration, stepMin) ||
+        !allPositive(distance, duration, stepMin)
+      ) {
+        alert('Must enter positive numbers only.');
+      } // -------- end Guard Clause --------
+
+      workOut = new Running([lat, lng], distance, duration, stepMin);
+    } // -------- end type running --------
+
+    if (type === 'cycling') {
+      const elevation = +inputElevation.value;
+      // check if data is valid. guard clause
+      if (
+        // !Number.isFinite(distance) ||
+        // !Number.isFinite(duration) ||
+        // !Number.isFinite(elevation)
+        !validInputs(distance, duration, elevation) ||
+        !allPositive(distance, duration)
+      ) {
+        alert('Must enter positive numbers only.');
+      } // -------- end Guard Clause
+
+      workOut = new Cycling([lat, lng], distance, duration, elevation);
+    } // -------- end type cycling --------
+
+    this.#workOuts = workOut;
+    // console.log(workOut);
+
+    // work out marker
+    this.makeWorkOutMarker(workOut);
 
     // clear input fields
     inputDistance.value = inputDuration.value = inputCadence.value = inputElevation.value =
       '';
+  } // ------ end _newWorkout ------
 
-    //   adding marker
-    const { lat, lng } = this.#mapEvent.latlng;
-
+  makeWorkOutMarker(workout) {
     // this is from leaflet documentation
-    L.marker([lat, lng])
+    L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -139,12 +195,12 @@ class App {
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
-          className: 'running-popup',
+          className: `${workout.type}-popup`,
         })
       )
-      .setPopupContent('WorkOut Location')
+      .setPopupContent('workout')
       .openPopup();
-  } // ------ end _newWorkout ------
+  }
 } // ------ end class App ------
 
 const app = new App();
